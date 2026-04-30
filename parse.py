@@ -1,8 +1,43 @@
-from typing import Optional
+from typing import List, Optional
 import re
 import logging
 
+import pathlib
+
 from datas import LineParts
+
+########################################################################################################################
+
+
+class FileParser:
+    """ The file parser. Parses the file into lines, and then parses each line into its parts. """
+
+    @staticmethod
+    def parse_file(path: pathlib.Path) -> List[LineParts]:
+        """
+        Parses the file content into a list of LineParts.
+        """
+
+        lines = FileParser._load_lines_(path)
+
+        records: List[LineParts] = []
+
+        for line in lines:
+
+            parts = LineParser.detect_parts(line)
+            if parts:
+                records.append(parts)
+                logging.info("%s OK", parts.date_part)
+
+        return records
+
+    @staticmethod
+    def _load_lines_(path: pathlib.Path) -> List[str]:
+        """
+        Loads all non-empty lines from a text file using US-ASCII encoding.
+        """
+        with open(path, "r", encoding="ascii") as fh:
+            return [line.strip() for line in fh if line.strip()]
 
 ########################################################################################################################
 
