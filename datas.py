@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Dict
+from dataclasses import dataclass, field
+from typing import Dict, List
 
 
 ########################################################################################################################
@@ -38,3 +38,18 @@ class DayRecord:
     """ The information about single day record, with all its tasks. """
     date: DateInfo
     tasks: Dict[TaskInfo, TaskHours]
+
+
+@dataclass
+class DetectedErrors:
+    """ Mutable container for errors detected during processing. """
+    errors: List[str] = field(default_factory=list)
+
+    def add(self, error: str) -> None:
+        self.errors.append(error)
+
+    def has_errors(self) -> bool:
+        return len(self.errors) > 0
+
+    def errors_list(self) -> str:
+        return ", ".join(self.errors)

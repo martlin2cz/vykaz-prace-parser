@@ -1,10 +1,10 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 import re
 import logging
 
 import pathlib
 
-from datas import LineParts, DateInfo, TaskInfo, TaskHours, DayRecord
+from datas import LineParts, DateInfo, TaskInfo, TaskHours, DayRecord, DetectedErrors
 
 
 ########################################################################################################################
@@ -37,7 +37,7 @@ class LineParser:
     """ The line parser. Parses the line into its parts: date, task list, and hours list. """
 
     @staticmethod
-    def detect_parts(line: str) -> Optional[LineParts]:
+    def detect_parts(line: str, errors: DetectedErrors) -> Optional[LineParts]:
         """
         Detects date, task list, and hours list sections from an input line.
         """
@@ -50,7 +50,7 @@ class LineParser:
         match = pattern.match(line)
 
         if not match:
-            logging.error("Failed to detect parts: %s", line)
+            errors.add("Failed to detect parts")
             return None
 
         return LineParts(
@@ -66,7 +66,7 @@ class DatePartParser:
     """ The date part parser. Parses the date part into a DateInfo. """
 
     @staticmethod
-    def detect_date(date_part: str) -> DateInfo:
+    def detect_date(date_part: str, errors: DetectedErrors) -> DateInfo:
         """
         Extracts raw date from detected line parts.
         """
@@ -79,7 +79,7 @@ class TasksListParser:
     """ The tasks list parser. Parses the task list part into a list of TaskInfo. """
 
     @staticmethod
-    def detect_tasks(task_list_part: str) -> Optional[List[TaskInfo]]:
+    def detect_tasks(task_list_part: str, errors: DetectedErrors) -> Optional[List[TaskInfo]]:
         """
         Parses task ID and task text pairs from the task list section.
         """
@@ -93,7 +93,7 @@ class TasksListParser:
         for token in tokens:
             match = task_pattern.fullmatch(token)
             if not match:
-                logging.error("Invalid task format: %s", token)
+                errors.add(f"Invalid task format: {token}")
                 return None
             tasks.append(
                 TaskInfo(
@@ -111,7 +111,7 @@ class HoursListParser:
     """ The hours list parser. Parses the hours list part into a list of TaskHours. """
 
     @staticmethod
-    def detect_hours(hours_part: str) -> List[TaskHours]:
+    def detect_hours(hours_part: str, errors: DetectedErrors) -> List[TaskHours]:
         """
         Parses raw hours tokens from the hours list section.
         """
@@ -142,37 +142,46 @@ class RecordsParser:
         records: List[DayRecord] = []
 
         for line in lines:
-            record = self.process_line(line)
+            record, errors = self.process_line(line)
+            line_identifier = record.date.raw_date if (record and record.date and record.date.raw_date) else line
+
+            if not errors.has_errors():
+                logging.info("%s OK", line_identifier)
+            else:
+                logging.error("%s: %s", line_identifier, errors.errors_list())
+
             if record:
-                logging.info("%s OK", record.date.raw_date)
-                records.append(record)
+                 records.append(record)
 
         return records
 
-    def process_line(self, line: str) -> Optional[DayRecord]:
+    def process_line(self, line: str) -> Tuple[Optional[DayRecord], DetectedErrors]:
         """
         Processes a single input line into a DayRecord structure.
         """
-        parts = self.parts_parser.detect_parts(line)
+        errors = DetectedErrors()
+
+        parts = self.parts_parser.detect_parts(line, errors)
         if not parts:
-            return None
+            return None, errors
 
-        date = self.date_part_parser.detect_date(parts.date_part)
-        tasks = self.tasks_list_parser.detect_tasks(parts.task_list_part)
+        date = self.date_part_parser.detect_date(parts.date_part, errors)
+        tasks = self.tasks_list_parser.detect_tasks(parts.task_list_part, errors)
         if tasks is None:
-            return None
+            return None, errors
 
-        hours = self.hours_list_parser.detect_hours(parts.hours_list_part)
+        hours = self.hours_list_parser.detect_hours(parts.hours_list_part, errors)
 
         if len(tasks) != len(hours):
-            logging.error("Task/hour count mismatch: %s", line)
-            return None
+            errors.add(f"Task/hour count mismatch: {line}")
+            return None, errors
 
         task_map: Dict[TaskInfo, TaskHours] = {
             task: hour for task, hour in zip(tasks, hours)
         }
 
-        return DayRecord(date=date, tasks=task_map)
+        record = DayRecord(date=date, tasks=task_map)
+        return record, errors
 
 
 ########################################################################################################################
