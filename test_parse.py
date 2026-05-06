@@ -29,7 +29,8 @@ class TestLineParser(unittest.TestCase):
     def test_detect_parts_single_standart(self) -> None:
         line = "23.04.2026 - DOLOREM (lorem) (7)"
         errors = DetectedErrors()
-        parts = LineParser.detect_parts(line, errors)
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
         self.assertFalse(errors.has_errors())
@@ -40,7 +41,8 @@ class TestLineParser(unittest.TestCase):
     def test_detect_parts_multiple_standart(self) -> None:
         line = "24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)"
         errors = DetectedErrors()
-        parts = LineParser.detect_parts(line, errors)
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
         self.assertFalse(errors.has_errors())
@@ -68,7 +70,8 @@ class TestTasksListParser(TestCase):
     def test_singular(self):
         tasks_list_part = "DOLOREM (lorem)"
         errors = DetectedErrors()
-        tasks = TasksListParser.detect_tasks(tasks_list_part, errors)
+        parser = TasksListParser()
+        tasks = parser.detect_tasks(tasks_list_part, errors)
 
         self.assertFalse(errors.has_errors())
         self.assertEqual(tasks, [
@@ -78,7 +81,8 @@ class TestTasksListParser(TestCase):
     def test_multiple(self):
         tasks_list_part = "DOLOREM (lorem), LIPSUM (ipsum)"
         errors = DetectedErrors()
-        tasks = TasksListParser.detect_tasks(tasks_list_part, errors)
+        parser = TasksListParser()
+        tasks = parser.detect_tasks(tasks_list_part, errors)
 
         self.assertFalse(errors.has_errors())
         self.assertEqual(tasks, [

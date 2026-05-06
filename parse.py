@@ -36,19 +36,18 @@ class LinesParser:
 class LineParser:
     """ The line parser. Parses the line into its parts: date, task list, and hours list. """
 
-    @staticmethod
-    def detect_parts(line: str, errors: DetectedErrors) -> Optional[LineParts]:
+    def __init__(self):
+        date_part_pattern = r"(?P<date>\d{2}\.\d{2}\.\d{4})"
+        tasks_part_pattern = r"(?P<tasks>.+?)"
+        hours_part_pattern = r"\((?P<hours>[^)]+)\)"
+
+        self.line_pattern = re.compile(r"^\s*" + date_part_pattern + r"\s+-\s+" + tasks_part_pattern + r"\s*" + hours_part_pattern + r"\s*$")
+
+    def detect_parts(self, line: str, errors: DetectedErrors) -> Optional[LineParts]:
         """
         Detects date, task list, and hours list sections from an input line.
         """
-        pattern = re.compile(
-            r"^(?P<date>\d{2}\.\d{2}\.\d{4})\s+-\s+"
-            r"(?P<tasks>.+?)\s*"
-            r"\((?P<hours>[^)]+)\)$"
-        )
-
-        match = pattern.match(line)
-
+        match = self.line_pattern.match(line)
         if not match:
             errors.add("Failed to detect parts")
             return None
@@ -78,20 +77,21 @@ class DatePartParser:
 class TasksListParser:
     """ The tasks list parser. Parses the task list part into a list of TaskInfo. """
 
-    @staticmethod
-    def detect_tasks(task_list_part: str, errors: DetectedErrors) -> Optional[List[TaskInfo]]:
+    def __init__(self):
+        task_id_pattern = r"(?P<id>[^,(]+)"
+        task_text_pattern = r"(?P<text>[^)]+)"
+
+        self.task_pattern = re.compile(r"\s*" + task_id_pattern + r"\s*\(" + task_text_pattern + r"\s*\)\s*")
+
+    def detect_tasks(self, task_list_part: str, errors: DetectedErrors) -> Optional[List[TaskInfo]]:
         """
         Parses task ID and task text pairs from the task list section.
         """
-        task_pattern = re.compile(
-            r"\s*(?P<id>[^,(]+)\s*\((?P<text>[^)]+)\)\s*"
-        )
-
         tokens = [t.strip() for t in task_list_part.split(",")]
         tasks: List[TaskInfo] = []
 
         for token in tokens:
-            match = task_pattern.fullmatch(token)
+            match = self.task_pattern.fullmatch(token)
             if not match:
                 errors.add(f"Invalid task format: {token}")
                 return None
@@ -185,6 +185,4 @@ class RecordsParser:
 
 
 ########################################################################################################################
-
-
 
