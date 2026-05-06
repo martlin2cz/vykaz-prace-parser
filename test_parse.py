@@ -24,6 +24,9 @@ class TestLinesParser(unittest.TestCase):
             '12.10.2026 - NORNENER (non), LENENER (len), MORENER (moo) (2 + 3+ + 4-)',
             "11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)",
             "12.03.2026 - DONOMEM (nohours singular)",
+            "06.06.2026 - SUNEMEM (7)",
+            "07.06.2026 - PUNUMEM, BUNUMEM (6 + 2)",
+            "08.06.2026 - DETENM (peen), NOSODNM (3 + 5)",
             "07.09.2026 - MONON (qumun), YUNON (munon) (3)",
             "08.09.2026 - VERYNON (yun) (2 + 4)"
         ])
@@ -93,7 +96,6 @@ class TestLineParser(unittest.TestCase):
         self.assertEqual(parts.hours_list_part, None)
         self.assertFalse(errors.has_errors())
 
-
     def test_detect_parts_nohours_multiple(self) -> None:
         line = "11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)"
         errors = DetectedErrors()
@@ -105,6 +107,30 @@ class TestLineParser(unittest.TestCase):
         self.assertEqual(parts.task_list_part, "LOLOREM (nohours), BOLIPSUM (nohours too)")
         self.assertEqual(parts.hours_list_part, None)
         self.assertFalse(errors.has_errors())
+
+    def test_detect_parts_without_task_description_multiple(self) -> None:
+        line = "13.03.2026 - BONOMEN, BIPSUM (7 + 2)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        self.assertIsNotNone(parts)
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(parts.date_part, "13.03.2026")
+        self.assertEqual(parts.task_list_part, "BONOMEN, BIPSUM")
+        self.assertEqual(parts.hours_list_part, "7 + 2")
+
+    def test_detect_parts_without_task_description_single(self) -> None:
+        line = "14.03.2026 - SINOMEN (9)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        self.assertIsNotNone(parts)
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(parts.date_part, "14.03.2026")
+        self.assertEqual(parts.task_list_part, "SINOMEN")
+        self.assertEqual(parts.hours_list_part, "9")
 
 
 ########################################################################################################################
@@ -144,6 +170,41 @@ class TestTasksListParser(TestCase):
         self.assertEqual(tasks, [
             TaskInfo(task_id="DOLOREM", task_text="lorem"),
             TaskInfo(task_id="LIPSUM", task_text="ipsum")
+        ])
+
+    def test_simplified_singular(self):
+        tasks_list_part = "SUNEMEM"
+        errors = DetectedErrors()
+        parser = TasksListParser()
+        tasks = parser.detect_tasks(tasks_list_part, errors)
+
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(tasks, [
+            TaskInfo(task_id="SUNEMEM", task_text="???")
+        ])
+
+    def test_simplified_multiple(self):
+        tasks_list_part = "SUNEMEM, BUNUMEM"
+        errors = DetectedErrors()
+        parser = TasksListParser()
+        tasks = parser.detect_tasks(tasks_list_part, errors)
+
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(tasks, [
+            TaskInfo(task_id="SUNEMEM", task_text="???"),
+            TaskInfo(task_id="BUNUMEM", task_text="???")
+        ])
+
+    def test_combine_multiple(self):
+        tasks_list_part = "DETENM (peen), NOSODNM"
+        errors = DetectedErrors()
+        parser = TasksListParser()
+        tasks = parser.detect_tasks(tasks_list_part, errors)
+
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(tasks, [
+            TaskInfo(task_id="DETENM", task_text="peen"),
+            TaskInfo(task_id="NOSODNM", task_text="???")
         ])
 
 
@@ -353,6 +414,26 @@ class TestRecordsParserForFile(TestCase):
                 date=DateInfo("12.03.2026"),
                 tasks={
                     TaskInfo(task_id="DONOMEM", task_text="nohours singular"): TaskHours.synthetic(8)
+                }
+            ),
+            DayRecord(
+                date=DateInfo("06.06.2026"),
+                tasks={
+                    TaskInfo(task_id="SUNEMEM", task_text="???"): TaskHours.with_hours(7),
+                }
+            ),
+            DayRecord(
+                date=DateInfo("07.06.2026"),
+                tasks={
+                    TaskInfo(task_id="PUNUMEM", task_text="???"): TaskHours.with_hours(6),
+                    TaskInfo(task_id="BUNUMEM", task_text="???"): TaskHours.with_hours(2)
+                }
+            ),
+            DayRecord(
+                date=DateInfo("08.06.2026"),
+                tasks={
+                    TaskInfo(task_id="DETENM", task_text="peen"): TaskHours.with_hours(3),
+                    TaskInfo(task_id="NOSODNM", task_text="???"): TaskHours.with_hours(5)
                 }
             ),
             DayRecord(

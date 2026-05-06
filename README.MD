@@ -23,6 +23,12 @@ Or the hours can be ommited at all:
 11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)
 12.03.2026 - DONOMEM (nohours singular)
 ```
+Similarly, the task can be in simplified format:
+```
+06.06.2026 - SUNEMEM (7)
+07.06.2026 - PUNUMEM, BUNUMEM (6 + 2)
+08.06.2026 - DETENM (peen), NOSODNM (3 + 5)
+```
 
 
 # Further features

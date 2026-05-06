@@ -88,7 +88,10 @@ class TasksListParser:
         task_id_pattern = r"(?P<id>[^,(]+)"
         task_text_pattern = r"(?P<text>[^)]+)"
 
-        self.task_pattern = re.compile(r"\s*" + task_id_pattern + r"\s*\(" + task_text_pattern + r"\s*\)\s*")
+        standard_task_pattern = re.compile(r"\s*" + task_id_pattern + r"\s*\(" + task_text_pattern + r"\s*\)\s*")
+        simplified_task_pattern = re.compile(r"\s*" + task_id_pattern + r"\s*")
+
+        self.task_patterns = OrderedDict([("standard", standard_task_pattern), ("simplified", simplified_task_pattern)])
 
     def detect_tasks(self, task_list_part: str, errors: DetectedErrors) -> Optional[List[TaskInfo]]:
         """
@@ -98,14 +101,14 @@ class TasksListParser:
         tasks: List[TaskInfo] = []
 
         for token in tokens:
-            match = self.task_pattern.fullmatch(token)
-            if not match:
+            matches, format_name = util.find_match(token, self.task_patterns)
+            if not matches:
                 errors.add(f"Invalid task format: {token}")
                 return None
             tasks.append(
                 TaskInfo(
-                    task_id=match.group("id").strip(),
-                    task_text=match.group("text").strip(),
+                    task_id=matches.get("id").strip(),
+                    task_text=matches.get("text", "???").strip(),
                 )
             )
 
