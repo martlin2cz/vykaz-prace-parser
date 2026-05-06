@@ -21,6 +21,8 @@ class TestLinesParser(unittest.TestCase):
             "24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)",
             "05.07.2026 - UNNUNEN (noon) (?)",
             "05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)",
+            "11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)",
+            "12.03.2026 - DONOMEM (nohours singular)",
             "07.09.2026 - MONON (qumun), YUNON (munon) (3)",
             "08.09.2026 - VERYNON (yun) (2 + 4)"
         ])
@@ -77,6 +79,31 @@ class TestLineParser(unittest.TestCase):
         self.assertEqual(parts.date_part, "05.07.2026")
         self.assertEqual(parts.task_list_part, "BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko)")
         self.assertEqual(parts.hours_list_part, "3 + 5? + ?")
+
+    def test_detect_parts_nohours_single(self) -> None:
+        line = "12.03.2026 - DONOMEM (nohours singular)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        self.assertIsNotNone(parts)
+        self.assertEqual(parts.date_part, "12.03.2026")
+        self.assertEqual(parts.task_list_part, "DONOMEM (nohours singular)")
+        self.assertEqual(parts.hours_list_part, None)
+        self.assertFalse(errors.has_errors())
+
+
+    def test_detect_parts_nohours_multiple(self) -> None:
+        line = "11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        self.assertIsNotNone(parts)
+        self.assertEqual(parts.date_part, "11.03.2026")
+        self.assertEqual(parts.task_list_part, "LOLOREM (nohours), BOLIPSUM (nohours too)")
+        self.assertEqual(parts.hours_list_part, None)
+        self.assertFalse(errors.has_errors())
 
 
 ########################################################################################################################
@@ -253,6 +280,19 @@ class TestRecordsParserForFile(TestCase):
                 }
             ),
             DayRecord(
+                date=DateInfo("11.03.2026"),
+                tasks={
+                    TaskInfo(task_id="LOLOREM", task_text="nohours"): TaskHours(raw_hours="8?"),
+                    TaskInfo(task_id="BOLIPSUM", task_text="nohours too"): TaskHours(raw_hours="???"),
+                }
+            ),
+            DayRecord(
+                date=DateInfo("12.03.2026"),
+                tasks={
+                    TaskInfo(task_id="DONOMEM", task_text="nohours singular"): TaskHours(raw_hours="8?")
+                }
+            ),
+            DayRecord(
                 date=DateInfo(raw_date='07.09.2026'),
                 tasks={
                     TaskInfo(task_id='MONON', task_text='qumun'): TaskHours(raw_hours='3'),
@@ -265,7 +305,7 @@ class TestRecordsParserForFile(TestCase):
                     TaskInfo(task_id='VERYNON', task_text='yun'): TaskHours(raw_hours='2'),
                     TaskInfo(task_id='TASK-???', task_text='???'): TaskHours(raw_hours='4')
                 }
-            )
+            ),
         ])
 
 ########################################################################################################################

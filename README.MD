@@ -14,6 +14,12 @@ While the hours can be unprecise, i.e.:
 05.07.2026 - UNNUNEN (noon) (?)
 05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)
 ```
+Or the hours can be ommited at all:
+```
+11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)
+12.03.2026 - DONOMEM (nohours singular)
+```
+
 
 # Further features
 If there are missing hours for some tasks, they will get automatically guessed (and vice versa):

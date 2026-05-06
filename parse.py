@@ -4,7 +4,9 @@ import re
 import logging
 
 import pathlib
+from collections import OrderedDict
 
+import util
 from datas import LineParts, DateInfo, TaskInfo, TaskHours, DayRecord, DetectedErrors
 
 
@@ -42,21 +44,25 @@ class LineParser:
         tasks_part_pattern = r"(?P<tasks>.+?)"
         hours_part_pattern = r"\((?P<hours>[\d\s+?]+)\)"
 
-        self.line_pattern = re.compile(r"^\s*" + date_part_pattern + r"\s+-\s+" + tasks_part_pattern + r"\s*" + hours_part_pattern + r"\s*$")
+        standart_pattern = re.compile(r"^\s*" + date_part_pattern + r"\s+-\s+" + tasks_part_pattern + r"\s*" + hours_part_pattern + r"\s*$")
+        nohours_pattern = re.compile(r"^\s*" + date_part_pattern + r"\s+-\s+" + tasks_part_pattern +  r"\s*$")
+
+        self.patterns = OrderedDict([("standart", standart_pattern), ("nohours", nohours_pattern)])
 
     def detect_parts(self, line: str, errors: DetectedErrors) -> Optional[LineParts]:
         """
         Detects date, task list, and hours list sections from an input line.
         """
-        match = self.line_pattern.match(line)
-        if not match:
+        matches, format_name = util.find_match(line, self.patterns)
+        if not matches:
             errors.add("Failed to detect parts")
             return None
 
         return LineParts(
-            date_part=match.group("date"),
-            task_list_part=match.group("tasks"),
-            hours_list_part=match.group("hours"),
+            date_part=matches.get("date", "???"),
+            task_list_part=matches.get("tasks", ""),
+            hours_list_part=matches.get("hours", None),
+            format_name=format_name
         )
 
 ########################################################################################################################
@@ -129,6 +135,8 @@ class RecordsParser:
     """ The record parser. Parses the input file into a list of DayRecord structures. """
 
     def __init__(self):
+        self.DEFAULT_HOURS = "8?"
+
         self.lines_parser = LinesParser()
         self.parts_parser = LineParser()
         self.date_part_parser = DatePartParser()
@@ -171,7 +179,11 @@ class RecordsParser:
         if tasks is None:
             return None, errors
 
-        hours = self.hours_list_parser.detect_hours(parts.hours_list_part, errors)
+        if parts.hours_list_part is not None:
+            hours = self.hours_list_parser.detect_hours(parts.hours_list_part, errors)
+        else:
+            hours = [TaskHours(raw_hours=self.DEFAULT_HOURS)]
+
         task_map = self._map_tasks_to_hours(tasks, hours, errors)
 
         record = DayRecord(date=date, tasks=task_map)

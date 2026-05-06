@@ -11,7 +11,8 @@ class LineParts:
 
     date_part: str
     task_list_part: str
-    hours_list_part: str
+    hours_list_part: str | None
+    format_name: str
 
 
 @dataclass(frozen=True)
