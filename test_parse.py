@@ -18,7 +18,9 @@ class TestLinesParser(unittest.TestCase):
 
         self.assertEqual(lines, [
             "23.04.2026 - DOLOREM (lorem) (7)",
-            "24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)"
+            "24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)",
+            "05.07.2026 - UNNUNEN (noon) (?)",
+            "05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)"
         ])
 
 ########################################################################################################################
@@ -49,6 +51,30 @@ class TestLineParser(unittest.TestCase):
         self.assertEqual(parts.date_part, "24.04.2026")
         self.assertEqual(parts.task_list_part, "DOLOREM (lorem), LIPSUM (ipsum)")
         self.assertEqual(parts.hours_list_part, "7 + 1")
+
+    def test_detect_parts_unprecise_single(self) -> None:
+        line = "05.07.2026 - UNNUNEN (noon) (?)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        self.assertIsNotNone(parts)
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(parts.date_part, "05.07.2026")
+        self.assertEqual(parts.task_list_part, "UNNUNEN (noon)")
+        self.assertEqual(parts.hours_list_part, "?")
+
+    def test_detect_parts_unprecise_multiple(self) -> None:
+        line = "05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        self.assertIsNotNone(parts)
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(parts.date_part, "05.07.2026")
+        self.assertEqual(parts.task_list_part, "BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko)")
+        self.assertEqual(parts.hours_list_part, "3 + 5? + ?")
 
 
 ########################################################################################################################
@@ -116,6 +142,26 @@ class TestHoursListParser(TestCase):
             TaskHours(raw_hours="1")
         ])
 
+    def test_absolutelly_unknown(self):
+            hours_list_part = "?"
+            errors = DetectedErrors()
+            hours = HoursListParser.detect_hours(hours_list_part, errors)
+
+            self.assertFalse(errors.has_errors())
+            self.assertEqual(hours, [TaskHours(raw_hours="?")])
+
+    def test_some_unknowns(self):
+        hours_list_part = "3 + 5? + ?"
+        errors = DetectedErrors()
+        hours = HoursListParser.detect_hours(hours_list_part, errors)
+
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(hours, [
+            TaskHours(raw_hours="3"),
+            TaskHours(raw_hours="5?"),
+            TaskHours(raw_hours="?")
+        ])
+
 
 ########################################################################################################################
 
@@ -160,6 +206,20 @@ class TestRecordsParserForFile(TestCase):
                 tasks={
                     TaskInfo(task_id="DOLOREM", task_text="lorem"): TaskHours(raw_hours="7"),
                     TaskInfo(task_id="LIPSUM", task_text="ipsum"): TaskHours(raw_hours="1")
+                }
+            ),
+            DayRecord(
+                date=DateInfo("05.07.2026"),
+                tasks={
+                    TaskInfo(task_id="UNNUNEN", task_text="noon"): TaskHours(raw_hours="?")
+                }
+            ),
+            DayRecord(
+                date=DateInfo("05.07.2026"),
+                tasks={
+                    TaskInfo(task_id="BINUNEN", task_text="lesser"): TaskHours(raw_hours="3"),
+                    TaskInfo(task_id="SECUNEN", task_text="morer"): TaskHours(raw_hours="5?"),
+                    TaskInfo(task_id="TERNEN", task_text="unoko"): TaskHours(raw_hours="?")
                 }
             )
         ])

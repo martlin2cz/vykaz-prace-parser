@@ -39,7 +39,7 @@ class LineParser:
     def __init__(self):
         date_part_pattern = r"(?P<date>\d{2}\.\d{2}\.\d{4})"
         tasks_part_pattern = r"(?P<tasks>.+?)"
-        hours_part_pattern = r"\((?P<hours>[^)]+)\)"
+        hours_part_pattern = r"\((?P<hours>[\d\s+?]+)\)"
 
         self.line_pattern = re.compile(r"^\s*" + date_part_pattern + r"\s+-\s+" + tasks_part_pattern + r"\s*" + hours_part_pattern + r"\s*$")
 
