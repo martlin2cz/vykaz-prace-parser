@@ -1,3 +1,4 @@
+from itertools import zip_longest
 from typing import List, Optional, Dict, Tuple
 import re
 import logging
@@ -171,18 +172,29 @@ class RecordsParser:
             return None, errors
 
         hours = self.hours_list_parser.detect_hours(parts.hours_list_part, errors)
-
-        if len(tasks) != len(hours):
-            errors.add(f"Task/hour count mismatch: {line}")
-            return None, errors
-
-        task_map: Dict[TaskInfo, TaskHours] = {
-            task: hour for task, hour in zip(tasks, hours)
-        }
+        task_map = self._map_tasks_to_hours(tasks, hours, errors)
 
         record = DayRecord(date=date, tasks=task_map)
         return record, errors
 
+    @staticmethod
+    def _map_tasks_to_hours(tasks: List[TaskInfo], hours: List[TaskHours], errors: DetectedErrors) -> Dict[TaskInfo, TaskHours]:
+        """ Maps tasks to hours, ensuring that each task has a corresponding hours entry.
+        If there are more tasks than hours, the remaining tasks will be mapped to ??? object. """
+
+        result = {}
+        for task, hour in zip_longest(tasks, hours, fillvalue=None):
+            if task is None:
+                errors.add(f"Extra hours (missing task): {hour}")
+                task = TaskInfo(task_id="TASK-???", task_text="???")
+
+            if hour is None:
+                errors.add(f"No hours provided for task: {task}")
+                hour = TaskHours(raw_hours="???")
+
+            result[task] = hour
+
+        return result
 
 ########################################################################################################################
 

@@ -14,3 +14,10 @@ While the hours can be unprecise, i.e.:
 05.07.2026 - UNNUNEN (noon) (?)
 05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)
 ```
+
+# Further features
+If there are missing hours for some tasks, they will get automatically guessed (and vice versa):
+```
+07.09.2026 - MONON (qumun), YUNON (munon) (3)
+08.09.2026 - VERYNON (yun) (2 + 4)
+```

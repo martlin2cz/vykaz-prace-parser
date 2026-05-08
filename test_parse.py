@@ -20,7 +20,9 @@ class TestLinesParser(unittest.TestCase):
             "23.04.2026 - DOLOREM (lorem) (7)",
             "24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)",
             "05.07.2026 - UNNUNEN (noon) (?)",
-            "05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)"
+            "05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)",
+            "07.09.2026 - MONON (qumun), YUNON (munon) (3)",
+            "08.09.2026 - VERYNON (yun) (2 + 4)"
         ])
 
 ########################################################################################################################
@@ -183,6 +185,34 @@ class TestRecordsParserForLine(TestCase):
             }
         ))
 
+    def test_fill_missing_hours(self):
+        line = "07.09.2026 - MONON (qumun), YUNON (munon) (3)"
+        record, errors = self.record_parser.process_line(line)
+
+        self.assertEqual("No hours provided for task: TaskInfo(task_id='YUNON', task_text='munon')", errors.errors_list())
+        self.assertEqual(record, DayRecord(
+            date=DateInfo("07.09.2026"),
+            tasks={
+                TaskInfo(task_id="MONON", task_text="qumun"): TaskHours(raw_hours="3"),
+                TaskInfo(task_id="YUNON", task_text="munon"): TaskHours(raw_hours="???")
+            }
+        ))
+
+    def test_fill_missing_tasks(self):
+        line = "08.09.2026 - VERYNON (yun) (2 + 4)"
+        record, errors = self.record_parser.process_line(line)
+
+        self.assertEqual("Extra hours (missing task): TaskHours(raw_hours='4')", errors.errors_list())
+        self.assertEqual(record, DayRecord(
+            date=DateInfo("08.09.2026"),
+            tasks={
+                TaskInfo(task_id="VERYNON", task_text="yun"): TaskHours(raw_hours="2"),
+                TaskInfo(task_id="TASK-???", task_text="???"): TaskHours(raw_hours="4")
+            }
+        ))
+
+
+
 ########################################################################################################################
 
 
@@ -220,6 +250,20 @@ class TestRecordsParserForFile(TestCase):
                     TaskInfo(task_id="BINUNEN", task_text="lesser"): TaskHours(raw_hours="3"),
                     TaskInfo(task_id="SECUNEN", task_text="morer"): TaskHours(raw_hours="5?"),
                     TaskInfo(task_id="TERNEN", task_text="unoko"): TaskHours(raw_hours="?")
+                }
+            ),
+            DayRecord(
+                date=DateInfo(raw_date='07.09.2026'),
+                tasks={
+                    TaskInfo(task_id='MONON', task_text='qumun'): TaskHours(raw_hours='3'),
+                    TaskInfo(task_id='YUNON', task_text='munon'): TaskHours(raw_hours='???')
+                }
+            ),
+            DayRecord(
+                date=DateInfo(raw_date='08.09.2026'),
+                tasks={
+                    TaskInfo(task_id='VERYNON', task_text='yun'): TaskHours(raw_hours='2'),
+                    TaskInfo(task_id='TASK-???', task_text='???'): TaskHours(raw_hours='4')
                 }
             )
         ])
