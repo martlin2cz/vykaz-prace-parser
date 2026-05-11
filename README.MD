@@ -14,6 +14,10 @@ While the hours can be unprecise, i.e.:
 05.07.2026 - UNNUNEN (noon) (?)
 05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)
 ```
+They can also be flagged "little more" or "little less":
+```
+12.10.2026 - NORNENER (non), LENENER (len), MORENER (moo) (2 + 3+ + 4-)
+```
 Or the hours can be ommited at all:
 ```
 11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)

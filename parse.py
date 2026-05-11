@@ -42,7 +42,7 @@ class LineParser:
     def __init__(self):
         date_part_pattern = r"(?P<date>\d{2}\.\d{2}\.\d{4})"
         tasks_part_pattern = r"(?P<tasks>.+?)"
-        hours_part_pattern = r"\((?P<hours>[\d\s+?]+)\)"
+        hours_part_pattern = r"\((?P<hours>[\d\s+-?]+)\)"
 
         standart_pattern = re.compile(r"^\s*" + date_part_pattern + r"\s+-\s+" + tasks_part_pattern + r"\s*" + hours_part_pattern + r"\s*$")
         nohours_pattern = re.compile(r"^\s*" + date_part_pattern + r"\s+-\s+" + tasks_part_pattern +  r"\s*$")
@@ -117,7 +117,9 @@ class TasksListParser:
 class HoursListParser:
     """ The hours list parser. Parses the hours list part into a list of TaskHours. """
 
-    TASK_HOURS_PATTERN = re.compile(r"^(?P<hours>[^?!]*)?(?P<flags>[?!]*)$")
+    TASK_HOURS_DELIMITER_PATTERN = re.compile(r"\s+\+\s+")
+    TASK_HOURS_PATTERN = re.compile(r"^(?P<hours>[^\-+?!]*)?(?P<flags>[\-+?!]*)$")
+
 
     @staticmethod
     def detect_hours(hours_part: str, errors: DetectedErrors) -> List[TaskHours]:
@@ -126,7 +128,7 @@ class HoursListParser:
         """
         return [
             HoursListParser._parse_hours(h.strip())
-            for h in hours_part.split("+")
+            for h in HoursListParser.TASK_HOURS_DELIMITER_PATTERN.split(hours_part)
             if h.strip()
         ]
 
@@ -148,6 +150,8 @@ class HoursListParser:
     def _parse_hours_flags(task_hours_flags_part: str) -> "TaskHoursFlags":
         """ Creates TaskHoursFlags from the hours part. """
         return TaskHoursFlags(
+            little_less="-" in task_hours_flags_part,
+            little_more="+" in task_hours_flags_part,
             uncertain="?" in task_hours_flags_part,
             synthetic=False
         )
@@ -184,7 +188,7 @@ class RecordsParser:
                 logging.error("%s: %s", line_identifier, errors.errors_list())
 
             if record:
-                 records.append(record)
+                records.append(record)
 
         return records
 

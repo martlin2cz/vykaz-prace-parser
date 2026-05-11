@@ -31,14 +31,20 @@ class TaskInfo:
 @dataclass(frozen=True)
 class TaskHoursFlags:
     """ The addidional flags related to the hours spent on a task. """
+    little_less: bool = False
+    little_more: bool = False
     uncertain: bool = False
     synthetic: bool = False
 
     def __bool__(self):
-        return self.uncertain or self.synthetic
+        return self.little_less or self.little_more or self.uncertain or self.synthetic
 
     def __str__(self):
         flags = []
+        if self.little_less:
+            flags.append("-")
+        if self.little_more:
+            flags.append("+")
         if self.uncertain:
             flags.append("?")
         if self.synthetic:
@@ -57,6 +63,11 @@ class TaskHours:
     def with_hours(hours: int) -> "TaskHours":
         """ Convinience method creating standard TaskHours with the given number of hours. """
         return TaskHours(hours=hours, flags=TaskHoursFlags())
+
+    @staticmethod
+    def not_exact(hours: int, little_less: bool = False, little_more: bool = False, uncertain: bool = False) -> "TaskHours":
+        """ Convinience method creating a TaskHours with the given number of hours and the little less/more flags. """
+        return TaskHours(hours=hours, flags=TaskHoursFlags(little_less=little_less, little_more=little_more, uncertain=uncertain))
 
     @staticmethod
     def uncertain(hours: int | None = None) -> "TaskHours":

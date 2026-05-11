@@ -21,6 +21,7 @@ class TestLinesParser(unittest.TestCase):
             "24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)",
             "05.07.2026 - UNNUNEN (noon) (?)",
             "05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)",
+            '12.10.2026 - NORNENER (non), LENENER (len), MORENER (moo) (2 + 3+ + 4-)',
             "11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)",
             "12.03.2026 - DONOMEM (nohours singular)",
             "07.09.2026 - MONON (qumun), YUNON (munon) (3)",
@@ -172,14 +173,14 @@ class TestHoursListParser(TestCase):
         ])
 
     def test_absolutelly_unknown(self):
-            hours_list_part = "?"
-            errors = DetectedErrors()
-            hours = HoursListParser.detect_hours(hours_list_part, errors)
+        hours_list_part = "?"
+        errors = DetectedErrors()
+        hours = HoursListParser.detect_hours(hours_list_part, errors)
 
-            self.assertFalse(errors.has_errors())
-            self.assertEqual(hours, [
-                TaskHours.uncertain()
-            ])
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(hours, [
+            TaskHours.uncertain()
+        ])
 
     def test_some_unknowns(self):
         hours_list_part = "3 + 5? + ?"
@@ -193,28 +194,60 @@ class TestHoursListParser(TestCase):
             TaskHours.uncertain()
         ])
 
+    def test_less_and_more_and_uncertains(self):
+        hours_list_part = "2 + 3+ + 4- + 5-? + 6-? + 7?"
+        errors = DetectedErrors()
+        hours = HoursListParser.detect_hours(hours_list_part, errors)
+
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(hours, [
+            TaskHours.with_hours(2),
+            TaskHours.not_exact(3, little_more=True),
+            TaskHours.not_exact(4, little_less=True),
+            TaskHours.not_exact(5, little_less=True, uncertain=True),
+            TaskHours.not_exact(6, little_less=True, uncertain=True),
+            TaskHours.uncertain(7)
+        ])
+
     def test_parse_hours_flags_valid_cases(self):
-        self.assertEqual(HoursListParser._parse_hours_flags(""), TaskHoursFlags(False, False))
-        self.assertEqual(HoursListParser._parse_hours_flags("?"), TaskHoursFlags(True, False))
+        self.assertEqual(HoursListParser._parse_hours_flags(""), TaskHoursFlags(False, False, False, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("-"), TaskHoursFlags(True, False, False, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("+"), TaskHoursFlags(False, True, False, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("?"), TaskHoursFlags(False, False, True, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("+?"), TaskHoursFlags(False, True, True, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("-?"), TaskHoursFlags(True, False, True, False))
 
     def test_parse_hours_flags_invalid_cases(self):
-        self.assertEqual(HoursListParser._parse_hours_flags("???"), TaskHoursFlags(True, False))
-        self.assertEqual(HoursListParser._parse_hours_flags("!"), TaskHoursFlags(False, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("--"), TaskHoursFlags(True, False, False, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("++"), TaskHoursFlags(False, True, False, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("???"), TaskHoursFlags(False, False, True, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("+-"), TaskHoursFlags(True, True, False, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("-+"), TaskHoursFlags(True, True, False, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("!"), TaskHoursFlags(False, False, False, False))
 
     def test_parse_hours_valid_cases(self):
         self.assertEqual(HoursListParser._parse_hours("8"), TaskHours.with_hours(8))
+        self.assertEqual(HoursListParser._parse_hours("7-"), TaskHours.not_exact(7, little_less=True))
+        self.assertEqual(HoursListParser._parse_hours("6+"), TaskHours.not_exact(6, little_more=True))
         self.assertEqual(HoursListParser._parse_hours("?"), TaskHours.uncertain())
         self.assertEqual(HoursListParser._parse_hours("5?"), TaskHours.uncertain(5))
+
+        self.assertEqual(HoursListParser._parse_hours("4+?"), TaskHours.not_exact(4, little_more=True, uncertain=True))
+        self.assertEqual(HoursListParser._parse_hours("3-?"), TaskHours.not_exact(3, little_less=True, uncertain=True))
 
         self.assertEqual(HoursListParser._parse_hours("11"), TaskHours.with_hours(11))
         self.assertEqual(HoursListParser._parse_hours("0"), TaskHours.with_hours(0))
 
     def test_parse_hours_invalid_cases(self):
-        self.assertEqual(HoursListParser._parse_hours("x"), TaskHours(None, TaskHoursFlags(False, False)))
-        self.assertEqual(HoursListParser._parse_hours("Z?"), TaskHours(None, TaskHoursFlags(True, False)))
+        self.assertEqual(HoursListParser._parse_hours("x"), TaskHours(None, TaskHoursFlags(False, False, False, False)))
+        self.assertEqual(HoursListParser._parse_hours("y+"), TaskHours(None, TaskHoursFlags(False, True, False, False)))
+        self.assertEqual(HoursListParser._parse_hours("Z?"), TaskHours(None, TaskHoursFlags(False, False, True, False)))
 
-        self.assertEqual(HoursListParser._parse_hours("-1"), TaskHours(None, TaskHoursFlags(False, False)))
-        self.assertEqual(HoursListParser._parse_hours("4.5"), TaskHours(None, TaskHoursFlags(False, False)))
+        self.assertEqual(HoursListParser._parse_hours("9--"), TaskHours(9, TaskHoursFlags(True, False, False, False)))
+        self.assertEqual(HoursListParser._parse_hours("8+-!"), TaskHours(8, TaskHoursFlags(True, True, False, False)))
+
+        self.assertEqual(HoursListParser._parse_hours("-1"), TaskHours(None, TaskHoursFlags(False, False, False, False)))
+        self.assertEqual(HoursListParser._parse_hours("4.5"), TaskHours(None, TaskHoursFlags(False, False, False, False)))
 
 
 ########################################################################################################################
@@ -302,6 +335,14 @@ class TestRecordsParserForFile(TestCase):
                 }
             ),
             DayRecord(
+                date=DateInfo("12.10.2026"),
+                tasks={
+                    TaskInfo(task_id="NORNENER", task_text="non"): TaskHours.with_hours(2),
+                    TaskInfo(task_id="LENENER", task_text="len"): TaskHours.not_exact(3, little_more=True),
+                    TaskInfo(task_id="MORENER", task_text="moo"): TaskHours.not_exact(4, little_less=True)
+                }
+            ),
+            DayRecord(
                 date=DateInfo("11.03.2026"),
                 tasks={
                     TaskInfo(task_id="LOLOREM", task_text="nohours"): TaskHours.synthetic(8),
@@ -329,6 +370,8 @@ class TestRecordsParserForFile(TestCase):
                 }
             ),
         ]
+
+        self.assertEqual([e.date for e in expected_records], [e.date for e in records])
 
         for expected_record, actual_record in zip(expected_records, records):
             self.assertEqual(expected_record, actual_record)

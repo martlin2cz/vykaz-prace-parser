@@ -2,6 +2,7 @@
 24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)
 05.07.2026 - UNNUNEN (noon) (?)
 05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)
+12.10.2026 - NORNENER (non), LENENER (len), MORENER (moo) (2 + 3+ + 4-)
 11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)
 12.03.2026 - DONOMEM (nohours singular)
 07.09.2026 - MONON (qumun), YUNON (munon) (3)
