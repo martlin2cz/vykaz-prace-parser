@@ -7,7 +7,7 @@ import pathlib
 from collections import OrderedDict
 
 import util
-from datas import LineParts, DateInfo, TaskInfo, TaskHours, DayRecord, DetectedErrors
+from datas import LineParts, DateInfo, TaskInfo, TaskHours, DayRecord, DetectedErrors, TaskHoursFlags
 
 
 ########################################################################################################################
@@ -117,16 +117,40 @@ class TasksListParser:
 class HoursListParser:
     """ The hours list parser. Parses the hours list part into a list of TaskHours. """
 
+    TASK_HOURS_PATTERN = re.compile(r"^(?P<hours>[^?!]*)?(?P<flags>[?!]*)$")
+
     @staticmethod
     def detect_hours(hours_part: str, errors: DetectedErrors) -> List[TaskHours]:
         """
         Parses raw hours tokens from the hours list section.
         """
         return [
-            TaskHours(raw_hours=h.strip())
+            HoursListParser._parse_hours(h.strip())
             for h in hours_part.split("+")
             if h.strip()
         ]
+
+    @staticmethod
+    def _parse_hours(task_hours_part: str) -> "TaskHours":
+        """ Creates TaskHours from the hours part. """
+
+        matches = HoursListParser.TASK_HOURS_PATTERN.match(task_hours_part)
+
+        hours_part = matches.group("hours") if matches and matches.group("hours") else None
+        hours_count = int(hours_part) if hours_part and hours_part.isdecimal() else None
+
+        flags_part = matches.group("flags") if matches and matches.group("flags") else None
+        flags = HoursListParser._parse_hours_flags(flags_part) if flags_part else TaskHoursFlags()
+
+        return TaskHours(hours=hours_count, flags=flags)
+
+    @staticmethod
+    def _parse_hours_flags(task_hours_flags_part: str) -> "TaskHoursFlags":
+        """ Creates TaskHoursFlags from the hours part. """
+        return TaskHoursFlags(
+            uncertain="?" in task_hours_flags_part,
+            synthetic=False
+        )
 
 ########################################################################################################################
 
@@ -135,7 +159,7 @@ class RecordsParser:
     """ The record parser. Parses the input file into a list of DayRecord structures. """
 
     def __init__(self):
-        self.DEFAULT_HOURS = "8?"
+        self.DEFAULT_HOURS = TaskHours.synthetic(8)
 
         self.lines_parser = LinesParser()
         self.parts_parser = LineParser()
@@ -182,7 +206,7 @@ class RecordsParser:
         if parts.hours_list_part is not None:
             hours = self.hours_list_parser.detect_hours(parts.hours_list_part, errors)
         else:
-            hours = [TaskHours(raw_hours=self.DEFAULT_HOURS)]
+            hours = [self.DEFAULT_HOURS]
 
         task_map = self._map_tasks_to_hours(tasks, hours, errors)
 
@@ -202,11 +226,12 @@ class RecordsParser:
 
             if hour is None:
                 errors.add(f"No hours provided for task: {task}")
-                hour = TaskHours(raw_hours="???")
+                hour = TaskHours.synthetic()
 
             result[task] = hour
 
         return result
+
 
 ########################################################################################################################
 

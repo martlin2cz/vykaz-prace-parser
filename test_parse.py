@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from parse import LineParser, LinesParser, DatePartParser, TasksListParser, HoursListParser, RecordsParser
-from datas import DateInfo, TaskInfo, TaskHours, DayRecord, DetectedErrors
+from datas import DateInfo, TaskInfo, TaskHours, TaskHoursFlags, DayRecord, DetectedErrors
 
 import unittest
 import pathlib
@@ -157,7 +157,7 @@ class TestHoursListParser(TestCase):
 
         self.assertFalse(errors.has_errors())
         self.assertEqual(hours, [
-            TaskHours(raw_hours="7")
+            TaskHours.with_hours(7)
         ])
 
     def test_multiple(self):
@@ -167,8 +167,8 @@ class TestHoursListParser(TestCase):
 
         self.assertFalse(errors.has_errors())
         self.assertEqual(hours, [
-            TaskHours(raw_hours="7"),
-            TaskHours(raw_hours="1")
+            TaskHours.with_hours(7),
+            TaskHours.with_hours(1)
         ])
 
     def test_absolutelly_unknown(self):
@@ -177,7 +177,9 @@ class TestHoursListParser(TestCase):
             hours = HoursListParser.detect_hours(hours_list_part, errors)
 
             self.assertFalse(errors.has_errors())
-            self.assertEqual(hours, [TaskHours(raw_hours="?")])
+            self.assertEqual(hours, [
+                TaskHours.uncertain()
+            ])
 
     def test_some_unknowns(self):
         hours_list_part = "3 + 5? + ?"
@@ -186,10 +188,33 @@ class TestHoursListParser(TestCase):
 
         self.assertFalse(errors.has_errors())
         self.assertEqual(hours, [
-            TaskHours(raw_hours="3"),
-            TaskHours(raw_hours="5?"),
-            TaskHours(raw_hours="?")
+            TaskHours.with_hours(3),
+            TaskHours.uncertain(5),
+            TaskHours.uncertain()
         ])
+
+    def test_parse_hours_flags_valid_cases(self):
+        self.assertEqual(HoursListParser._parse_hours_flags(""), TaskHoursFlags(False, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("?"), TaskHoursFlags(True, False))
+
+    def test_parse_hours_flags_invalid_cases(self):
+        self.assertEqual(HoursListParser._parse_hours_flags("???"), TaskHoursFlags(True, False))
+        self.assertEqual(HoursListParser._parse_hours_flags("!"), TaskHoursFlags(False, False))
+
+    def test_parse_hours_valid_cases(self):
+        self.assertEqual(HoursListParser._parse_hours("8"), TaskHours.with_hours(8))
+        self.assertEqual(HoursListParser._parse_hours("?"), TaskHours.uncertain())
+        self.assertEqual(HoursListParser._parse_hours("5?"), TaskHours.uncertain(5))
+
+        self.assertEqual(HoursListParser._parse_hours("11"), TaskHours.with_hours(11))
+        self.assertEqual(HoursListParser._parse_hours("0"), TaskHours.with_hours(0))
+
+    def test_parse_hours_invalid_cases(self):
+        self.assertEqual(HoursListParser._parse_hours("x"), TaskHours(None, TaskHoursFlags(False, False)))
+        self.assertEqual(HoursListParser._parse_hours("Z?"), TaskHours(None, TaskHoursFlags(True, False)))
+
+        self.assertEqual(HoursListParser._parse_hours("-1"), TaskHours(None, TaskHoursFlags(False, False)))
+        self.assertEqual(HoursListParser._parse_hours("4.5"), TaskHours(None, TaskHoursFlags(False, False)))
 
 
 ########################################################################################################################
@@ -207,8 +232,8 @@ class TestRecordsParserForLine(TestCase):
         self.assertEqual(record, DayRecord(
             date=DateInfo("24.04.2026"),
             tasks={
-                TaskInfo(task_id="DOLOREM", task_text="lorem"): TaskHours(raw_hours="7"),
-                TaskInfo(task_id="LIPSUM", task_text="ipsum"): TaskHours(raw_hours="1")
+                TaskInfo(task_id="DOLOREM", task_text="lorem"): TaskHours.with_hours(7),
+                TaskInfo(task_id="LIPSUM", task_text="ipsum"): TaskHours.with_hours(1)
             }
         ))
 
@@ -220,8 +245,8 @@ class TestRecordsParserForLine(TestCase):
         self.assertEqual(record, DayRecord(
             date=DateInfo("07.09.2026"),
             tasks={
-                TaskInfo(task_id="MONON", task_text="qumun"): TaskHours(raw_hours="3"),
-                TaskInfo(task_id="YUNON", task_text="munon"): TaskHours(raw_hours="???")
+                TaskInfo(task_id="MONON", task_text="qumun"): TaskHours.with_hours(3),
+                TaskInfo(task_id="YUNON", task_text="munon"): TaskHours.synthetic()
             }
         ))
 
@@ -229,84 +254,85 @@ class TestRecordsParserForLine(TestCase):
         line = "08.09.2026 - VERYNON (yun) (2 + 4)"
         record, errors = self.record_parser.process_line(line)
 
-        self.assertEqual("Extra hours (missing task): TaskHours(raw_hours='4')", errors.errors_list())
+        self.assertEqual("Extra hours (missing task): 4", errors.errors_list())
         self.assertEqual(record, DayRecord(
             date=DateInfo("08.09.2026"),
             tasks={
-                TaskInfo(task_id="VERYNON", task_text="yun"): TaskHours(raw_hours="2"),
-                TaskInfo(task_id="TASK-???", task_text="???"): TaskHours(raw_hours="4")
+                TaskInfo(task_id="VERYNON", task_text="yun"): TaskHours.with_hours(2),
+                TaskInfo(task_id="TASK-???", task_text="???"): TaskHours.with_hours(4)
             }
         ))
 
 
-
 ########################################################################################################################
 
-
 class TestRecordsParserForFile(TestCase):
-
     def test_some_file(self):
 
         path = pathlib.Path("sample_input.txt")
         record_parser = RecordsParser()
         records = record_parser.process_file(path)
 
-        self.assertEqual(records, [
+        expected_records = [
             DayRecord(
                 date=DateInfo("23.04.2026"),
                 tasks={
-                    TaskInfo(task_id="DOLOREM", task_text="lorem"): TaskHours(raw_hours="7")
+                    TaskInfo(task_id="DOLOREM", task_text="lorem"): TaskHours.with_hours(7)
                 }
             ),
             DayRecord(
                 date=DateInfo("24.04.2026"),
                 tasks={
-                    TaskInfo(task_id="DOLOREM", task_text="lorem"): TaskHours(raw_hours="7"),
-                    TaskInfo(task_id="LIPSUM", task_text="ipsum"): TaskHours(raw_hours="1")
+                    TaskInfo(task_id="DOLOREM", task_text="lorem"): TaskHours.with_hours(7),
+                    TaskInfo(task_id="LIPSUM", task_text="ipsum"): TaskHours.with_hours(1)
                 }
             ),
             DayRecord(
                 date=DateInfo("05.07.2026"),
                 tasks={
-                    TaskInfo(task_id="UNNUNEN", task_text="noon"): TaskHours(raw_hours="?")
+                    TaskInfo(task_id="UNNUNEN", task_text="noon"): TaskHours.uncertain()
                 }
             ),
             DayRecord(
                 date=DateInfo("05.07.2026"),
                 tasks={
-                    TaskInfo(task_id="BINUNEN", task_text="lesser"): TaskHours(raw_hours="3"),
-                    TaskInfo(task_id="SECUNEN", task_text="morer"): TaskHours(raw_hours="5?"),
-                    TaskInfo(task_id="TERNEN", task_text="unoko"): TaskHours(raw_hours="?")
+                    TaskInfo(task_id="BINUNEN", task_text="lesser"): TaskHours.with_hours(3),
+                    TaskInfo(task_id="SECUNEN", task_text="morer"): TaskHours.uncertain(5),
+                    TaskInfo(task_id="TERNEN", task_text="unoko"): TaskHours.uncertain()
                 }
             ),
             DayRecord(
                 date=DateInfo("11.03.2026"),
                 tasks={
-                    TaskInfo(task_id="LOLOREM", task_text="nohours"): TaskHours(raw_hours="8?"),
-                    TaskInfo(task_id="BOLIPSUM", task_text="nohours too"): TaskHours(raw_hours="???"),
+                    TaskInfo(task_id="LOLOREM", task_text="nohours"): TaskHours.synthetic(8),
+                    TaskInfo(task_id="BOLIPSUM", task_text="nohours too"): TaskHours.synthetic()
                 }
             ),
             DayRecord(
                 date=DateInfo("12.03.2026"),
                 tasks={
-                    TaskInfo(task_id="DONOMEM", task_text="nohours singular"): TaskHours(raw_hours="8?")
+                    TaskInfo(task_id="DONOMEM", task_text="nohours singular"): TaskHours.synthetic(8)
                 }
             ),
             DayRecord(
                 date=DateInfo(raw_date='07.09.2026'),
                 tasks={
-                    TaskInfo(task_id='MONON', task_text='qumun'): TaskHours(raw_hours='3'),
-                    TaskInfo(task_id='YUNON', task_text='munon'): TaskHours(raw_hours='???')
+                    TaskInfo(task_id='MONON', task_text='qumun'): TaskHours.with_hours(3),
+                    TaskInfo(task_id='YUNON', task_text='munon'): TaskHours.synthetic()
                 }
             ),
             DayRecord(
                 date=DateInfo(raw_date='08.09.2026'),
                 tasks={
-                    TaskInfo(task_id='VERYNON', task_text='yun'): TaskHours(raw_hours='2'),
-                    TaskInfo(task_id='TASK-???', task_text='???'): TaskHours(raw_hours='4')
+                    TaskInfo(task_id='VERYNON', task_text='yun'): TaskHours.with_hours(2),
+                    TaskInfo(task_id='TASK-???', task_text='???'): TaskHours.with_hours(4)
                 }
             ),
-        ])
+        ]
+
+        for expected_record, actual_record in zip(expected_records, records):
+            self.assertEqual(expected_record, actual_record)
+
 
 ########################################################################################################################
 
