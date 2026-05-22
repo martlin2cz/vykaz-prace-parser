@@ -97,13 +97,13 @@ class TasksListParser:
         """
         Parses task ID and task text pairs from the task list section.
         """
-        tokens = [t.strip() for t in task_list_part.split(",")]
+        task_tokens = util.split_bracketed_by_comma(task_list_part, errors)
         tasks: List[TaskInfo] = []
 
-        for token in tokens:
-            matches, format_name = util.find_match(token, self.task_patterns)
+        for task_token in task_tokens:
+            matches, format_name = util.find_match(task_token, self.task_patterns)
             if not matches:
-                errors.add_severe(f"Invalid task format: {token}")
+                errors.add_severe(f"Invalid task format: {task_token}")
                 return None
             tasks.append(
                 TaskInfo(

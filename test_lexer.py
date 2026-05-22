@@ -33,7 +33,7 @@ class TestingTokeniser(AbstractTokeniser):
     def __init__(self):
         self.pattern = re.compile(r"(A[AD]+)|(D+)|(,_*)")
 
-    def  find_matching_token(self, char_classes_substr: str) -> re.Match | typing.Tuple[int, int] | None:
+    def  find_matching_token(self, char_classes_substr: str, chars_substr: str) -> re.Match | typing.Tuple[int, int] | None:
         return self.pattern.match(char_classes_substr)
 
 

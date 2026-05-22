@@ -42,3 +42,11 @@ If there are missing hours for some tasks, they will get automatically guessed (
 07.09.2026 - MONON (qumun), YUNON (munon) (3)
 08.09.2026 - VERYNON (yun) (2 + 4)
 ```
+It can also, in some cases, recover from missing task delimiters:
+```
+14.10.2026 - MILID (sum) NILID (yum) (4 + 6)
+```
+Keep in mind in some cases the missing delimiter is impossible to guess, i.e:
+```
+15.10.2026 - CORDLY, SIMID SINILID, FUNKDLY (1 + 3 + 2 + 4)
+```

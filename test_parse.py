@@ -30,7 +30,9 @@ class TestLinesParser(unittest.TestCase):
             "07.06.2026 - PUNUMEM, BUNUMEM (6 + 2)",
             "08.06.2026 - DETENM (peen), NOSODNM (3 + 5)",
             "07.09.2026 - MONON (qumun), YUNON (munon) (3)",
-            "08.09.2026 - VERYNON (yun) (2 + 4)"
+            "08.09.2026 - VERYNON (yun) (2 + 4)",
+            "14.10.2026 - MILID (sum) NILID (yum) (4 + 6)",
+            "15.10.2026 - CORDLY, SIMID SINILID, FUNKDLY (1 + 3 + 2 + 4)"
         ])
 
 ########################################################################################################################
@@ -158,6 +160,31 @@ class TestLineParser(unittest.TestCase):
         self.assertEqual(parts.task_list_part, "SINOMEN")
         self.assertEqual(parts.hours_list_part, "9")
 
+    def test_detect_parts_edge_missing_comma(self) -> None:
+        line = "14.10.2026 - MILID (sum) NILID (yum) (4 + 6)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        # Parts detection should still work (date/tasks/hours extracted) even if tasks list is malformed
+        self.assertIsNotNone(parts)
+        self.assertTrue(errors.is_ok())
+        self.assertEqual(parts.date_part, "14.10.2026")
+        self.assertEqual(parts.task_list_part, "MILID (sum) NILID (yum)")
+        self.assertEqual(parts.hours_list_part, "4 + 6")
+
+    def test_detect_parts_edge_missing_both_delim_and_parentheses(self) -> None:
+        line = "15.10.2026 - CORDLY, SIMID SINILID, FUNKDLY (1 + 3 + 2 + 4)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        self.assertIsNotNone(parts)
+        self.assertTrue(errors.is_ok())
+        self.assertEqual(parts.date_part, "15.10.2026")
+        self.assertEqual(parts.task_list_part, "CORDLY, SIMID SINILID, FUNKDLY")
+        self.assertEqual(parts.hours_list_part, "1 + 3 + 2 + 4")
+
 
 ########################################################################################################################
 
@@ -231,6 +258,31 @@ class TestTasksListParser(TestCase):
         self.assertEqual(tasks, [
             TaskInfo(task_id="DETENM", task_text="peen"),
             TaskInfo(task_id="NOSODNM", task_text="???")
+        ])
+
+    def test_invalid_missing_comma(self):
+        tasks_list_part = "MILID (sum) NILID (yum)"
+        errors = DetectedErrors()
+        parser = TasksListParser()
+        tasks = parser.detect_tasks(tasks_list_part, errors)
+
+        self.assertEqual(tasks, [
+            TaskInfo(task_id="MILID", task_text="sum"),
+            TaskInfo(task_id="NILID", task_text="yum")
+        ])
+        self.assertEqual(str(errors), "Missing delimiter after: MILID (sum) ")
+
+    def test_invalid_missing_parentheses(self):
+        tasks_list_part = "CORDLY, SIMID SINILID, FUNKDLY"
+        errors = DetectedErrors()
+        parser = TasksListParser()
+        tasks = parser.detect_tasks(tasks_list_part, errors)
+
+        self.assertTrue(errors.is_ok())
+        self.assertEqual(tasks, [
+            TaskInfo(task_id="CORDLY", task_text="???"),
+            TaskInfo(task_id="SIMID SINILID", task_text="???"),
+            TaskInfo(task_id="FUNKDLY", task_text="???")
         ])
 
 
@@ -383,8 +435,39 @@ class TestRecordsParserForLine(TestCase):
             }
         ))
 
+    def test_edge_missing_comma(self):
+        line = "14.10.2026 - MILID (sum) NILID (yum) (4 + 6)"
+        record, errors = self.record_parser.process_line(line)
+
+        self.assertFalse(errors.is_ok())
+        self.assertEqual(str(errors), "Missing delimiter after: MILID (sum) ")
+        self.assertEqual(record, DayRecord(
+            date=DateInfo("14.10.2026"),
+            tasks={
+                TaskInfo(task_id="MILID", task_text="sum"): TaskHours.with_hours(4),
+                TaskInfo(task_id="NILID", task_text="yum"): TaskHours.with_hours(6)
+            }
+        ))
+
+    def test_edge_missing_both_delim_and_parentheses(self):
+        line = "15.10.2026 - CORDLY, SIMID SINILID, FUNKDLY (1 + 3 + 2 + 4)"
+        record, errors = self.record_parser.process_line(line)
+
+        self.assertFalse(errors.is_ok())
+        self.assertEqual(str(errors), "Extra hours (missing task): 4")
+        self.assertEqual(record, DayRecord(
+            date=DateInfo("15.10.2026"),
+            tasks={
+                TaskInfo(task_id="CORDLY", task_text="???"): TaskHours.with_hours(1),
+                TaskInfo(task_id="SIMID SINILID", task_text="???"): TaskHours.with_hours(3),
+                TaskInfo(task_id="FUNKDLY", task_text="???"): TaskHours.with_hours(2),
+                TaskInfo(task_id="TASK-???", task_text="???"): TaskHours.with_hours(4)
+            }
+        ))
+
 
 ########################################################################################################################
+
 
 class TestRecordsParserForFile(TestCase):
     def test_some_file(self):
@@ -490,6 +573,22 @@ class TestRecordsParserForFile(TestCase):
                     TaskInfo(task_id='TASK-???', task_text='???'): TaskHours.with_hours(4)
                 }
             ),
+            DayRecord(
+                date=DateInfo("14.10.2026"),
+                tasks={
+                    TaskInfo(task_id="MILID", task_text="sum"): TaskHours.with_hours(4),
+                    TaskInfo(task_id="NILID", task_text="yum"): TaskHours.with_hours(6)
+                }
+            ),
+            DayRecord(
+                date=DateInfo("15.10.2026"),
+                tasks={
+                    TaskInfo(task_id="CORDLY", task_text="???"): TaskHours.with_hours(1),
+                    TaskInfo(task_id="SIMID SINILID", task_text="???"): TaskHours.with_hours(3),
+                    TaskInfo(task_id="FUNKDLY", task_text="???"): TaskHours.with_hours(2),
+                    TaskInfo(task_id="TASK-???", task_text="???"): TaskHours.with_hours(4)
+                }
+            )
         ]
 
         self.assertEqual([e.date for e in expected_records], [e.date for e in records])

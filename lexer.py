@@ -78,11 +78,14 @@ class AbstractTokeniser(ABC):
 
         while i < len(classes):
             classes_substr = classes.char_classes_substr(i)
-            match = self.find_matching_token(classes_substr)
+            chars_substr = classes.chars_substr(i, None)
+
+            match = self.find_matching_token(classes_substr, chars_substr)
             if match:
-                relative_match_start, relative_match_end = (match.span()[0], match.span()[1]) \
-                                        if isinstance(match, re.Match) else \
-                                        (match[0], match[1])
+                relative_match_start, relative_match_end = \
+                    (match.span()[0], match.span()[1]) \
+                    if isinstance(match, re.Match) else \
+                    (match[0], match[1])
 
                 match_start, match_end = i + relative_match_start, i + relative_match_end
                 text = classes.chars_substr(match_start, match_end)
@@ -98,7 +101,7 @@ class AbstractTokeniser(ABC):
         return result
 
     @abstractmethod
-    def find_matching_token(self, char_classes_substr: str) -> re.Match | typing.Tuple[int, int] | None:
+    def find_matching_token(self, char_classes_substr: str, chars_substr: str) -> re.Match | typing.Tuple[int, int] | None:
         """ Finds the start and end of the following token from the start of the given classes substr. """
         pass
 
@@ -115,3 +118,4 @@ class SimpleLexer:
 
         classes = self.classifier.classify(text)
         return self.tokeniser.tokenise(classes)
+
