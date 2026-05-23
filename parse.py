@@ -40,7 +40,7 @@ class LineParser:
     """ The line parser. Parses the line into its parts: date, task list, and hours list. """
 
     def __init__(self):
-        date_part_pattern = r"(?P<date>\d{2}\.\d{2}\.\d{4})"
+        date_part_pattern = r"(?P<date>\d{1,2}\.\s*\d{1,2}\.\s*\d{1,})"
         tasks_part_pattern = r"(?P<tasks>.+?)"
         hours_part_pattern = r"\((?P<hours>[\d\s+-?]+)\)"
 

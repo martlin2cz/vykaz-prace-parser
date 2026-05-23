@@ -19,6 +19,8 @@ class TestLinesParser(unittest.TestCase):
         self.assertEqual(lines, [
             "23.04.2026 - DOLOREM (lorem) (7)",
             "24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)",
+            "2.2.2026 - TUNRMA (toned) (9)",
+            "3. 2. 2026 - DINRMA (moned) (7)",
             "05.07.2026 - UNNUNEN (noon) (?)",
             "05.07.2026 - BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko) (3 + 5? + ?)",
             '12.10.2026 - NORNENER (non), LENENER (len), MORENER (moo) (2 + 3+ + 4-)',
@@ -59,6 +61,30 @@ class TestLineParser(unittest.TestCase):
         self.assertEqual(parts.date_part, "24.04.2026")
         self.assertEqual(parts.task_list_part, "DOLOREM (lorem), LIPSUM (ipsum)")
         self.assertEqual(parts.hours_list_part, "7 + 1")
+
+    def test_detect_parts_date_format_without_zeros(self) -> None:
+        line = "2.2.2026 - TUNRMA (toned) (8)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        self.assertIsNotNone(parts)
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(parts.date_part, "2.2.2026")
+        self.assertEqual(parts.task_list_part, "TUNRMA (toned)")
+        self.assertEqual(parts.hours_list_part, "8")
+
+    def test_detect_parts_date_format_with_spaces(self) -> None:
+        line = "3. 2. 2026 - DINRMA (moned) (7)"
+        errors = DetectedErrors()
+        parser = LineParser()
+        parts = parser.detect_parts(line, errors)
+
+        self.assertIsNotNone(parts)
+        self.assertFalse(errors.has_errors())
+        self.assertEqual(parts.date_part, "3. 2. 2026")
+        self.assertEqual(parts.task_list_part, "DINRMA (moned)")
+        self.assertEqual(parts.hours_list_part, "7")
 
     def test_detect_parts_unprecise_single(self) -> None:
         line = "05.07.2026 - UNNUNEN (noon) (?)"
@@ -381,6 +407,20 @@ class TestRecordsParserForFile(TestCase):
                     TaskInfo(task_id="LIPSUM", task_text="ipsum"): TaskHours.with_hours(1)
                 }
             ),
+
+            DayRecord(
+                date=DateInfo("2.2.2026"),
+                tasks={
+                    TaskInfo(task_id="TUNRMA", task_text="toned"): TaskHours.with_hours(9)
+                }
+            ),
+            DayRecord(
+                date=DateInfo("3. 2. 2026"),
+                tasks={
+                    TaskInfo(task_id="DINRMA", task_text="moned"): TaskHours.with_hours(7)
+                }
+            ),
+
             DayRecord(
                 date=DateInfo("05.07.2026"),
                 tasks={

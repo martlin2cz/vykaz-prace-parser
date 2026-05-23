@@ -9,6 +9,11 @@ The input file is a text file with the format like this:
 23.04.2026 - DOLOREM (lorem) (7)
 24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)
 ```
+The date is supported in the CZ format, also in following variants:
+```
+3. 2. 2026 - DINRMA (moned) (9)
+04.02.2026 - QUARMA (staned) (7)
+```
 While the hours can be unprecise, i.e.:
 ```
 05.07.2026 - UNNUNEN (noon) (?)
