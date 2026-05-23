@@ -94,13 +94,20 @@ class DayRecord:
 @dataclass
 class DetectedErrors:
     """ Mutable container for errors detected during processing. """
-    errors: List[str] = field(default_factory=list)
+    minor_errors: List[str] = field(default_factory=list)
+    severe_errors: List[str] = field(default_factory=list)
 
-    def add(self, error: str) -> None:
-        self.errors.append(error)
+    def add_minor(self, error: str) -> None:
+        self.minor_errors.append(error)
 
-    def has_errors(self) -> bool:
-        return len(self.errors) > 0
+    def add_severe(self, error: str) -> None:
+        self.severe_errors.append(error)
 
-    def errors_list(self) -> str:
-        return ", ".join(self.errors)
+    def is_ok(self) -> bool:
+        return len(self.minor_errors) == 0 and len(self.severe_errors) == 0
+
+    def has_severe(self) -> bool:
+        return len(self.severe_errors) > 0
+
+    def __str__(self) -> str:
+        return ", ".join([*self.severe_errors, *self.minor_errors])

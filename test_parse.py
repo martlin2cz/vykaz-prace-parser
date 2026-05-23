@@ -45,7 +45,7 @@ class TestLineParser(unittest.TestCase):
         parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(parts.date_part, "23.04.2026")
         self.assertEqual(parts.task_list_part, "DOLOREM (lorem)")
         self.assertEqual(parts.hours_list_part, "7")
@@ -57,7 +57,7 @@ class TestLineParser(unittest.TestCase):
         parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(parts.date_part, "24.04.2026")
         self.assertEqual(parts.task_list_part, "DOLOREM (lorem), LIPSUM (ipsum)")
         self.assertEqual(parts.hours_list_part, "7 + 1")
@@ -69,7 +69,7 @@ class TestLineParser(unittest.TestCase):
         parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(parts.date_part, "2.2.2026")
         self.assertEqual(parts.task_list_part, "TUNRMA (toned)")
         self.assertEqual(parts.hours_list_part, "8")
@@ -81,7 +81,7 @@ class TestLineParser(unittest.TestCase):
         parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(parts.date_part, "3. 2. 2026")
         self.assertEqual(parts.task_list_part, "DINRMA (moned)")
         self.assertEqual(parts.hours_list_part, "7")
@@ -93,7 +93,7 @@ class TestLineParser(unittest.TestCase):
         parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(parts.date_part, "05.07.2026")
         self.assertEqual(parts.task_list_part, "UNNUNEN (noon)")
         self.assertEqual(parts.hours_list_part, "?")
@@ -105,7 +105,7 @@ class TestLineParser(unittest.TestCase):
         parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(parts.date_part, "05.07.2026")
         self.assertEqual(parts.task_list_part, "BINUNEN (lesser), SECUNEN (morer), TERNEN (unoko)")
         self.assertEqual(parts.hours_list_part, "3 + 5? + ?")
@@ -120,7 +120,7 @@ class TestLineParser(unittest.TestCase):
         self.assertEqual(parts.date_part, "12.03.2026")
         self.assertEqual(parts.task_list_part, "DONOMEM (nohours singular)")
         self.assertEqual(parts.hours_list_part, None)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
 
     def test_detect_parts_nohours_multiple(self) -> None:
         line = "11.03.2026 - LOLOREM (nohours), BOLIPSUM (nohours too)"
@@ -132,7 +132,7 @@ class TestLineParser(unittest.TestCase):
         self.assertEqual(parts.date_part, "11.03.2026")
         self.assertEqual(parts.task_list_part, "LOLOREM (nohours), BOLIPSUM (nohours too)")
         self.assertEqual(parts.hours_list_part, None)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
 
     def test_detect_parts_without_task_description_multiple(self) -> None:
         line = "13.03.2026 - BONOMEN, BIPSUM (7 + 2)"
@@ -141,7 +141,7 @@ class TestLineParser(unittest.TestCase):
         parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(parts.date_part, "13.03.2026")
         self.assertEqual(parts.task_list_part, "BONOMEN, BIPSUM")
         self.assertEqual(parts.hours_list_part, "7 + 2")
@@ -153,7 +153,7 @@ class TestLineParser(unittest.TestCase):
         parts = parser.detect_parts(line, errors)
 
         self.assertIsNotNone(parts)
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(parts.date_part, "14.03.2026")
         self.assertEqual(parts.task_list_part, "SINOMEN")
         self.assertEqual(parts.hours_list_part, "9")
@@ -168,7 +168,7 @@ class TestDatePartParser(TestCase):
         errors = DetectedErrors()
         date = DatePartParser.detect_date(date_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(date, DateInfo("23.04.2026"))
 
 ########################################################################################################################
@@ -181,7 +181,7 @@ class TestTasksListParser(TestCase):
         parser = TasksListParser()
         tasks = parser.detect_tasks(tasks_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(tasks, [
             TaskInfo(task_id="DOLOREM", task_text="lorem")
         ])
@@ -192,7 +192,7 @@ class TestTasksListParser(TestCase):
         parser = TasksListParser()
         tasks = parser.detect_tasks(tasks_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(tasks, [
             TaskInfo(task_id="DOLOREM", task_text="lorem"),
             TaskInfo(task_id="LIPSUM", task_text="ipsum")
@@ -204,7 +204,7 @@ class TestTasksListParser(TestCase):
         parser = TasksListParser()
         tasks = parser.detect_tasks(tasks_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(tasks, [
             TaskInfo(task_id="SUNEMEM", task_text="???")
         ])
@@ -215,7 +215,7 @@ class TestTasksListParser(TestCase):
         parser = TasksListParser()
         tasks = parser.detect_tasks(tasks_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(tasks, [
             TaskInfo(task_id="SUNEMEM", task_text="???"),
             TaskInfo(task_id="BUNUMEM", task_text="???")
@@ -227,7 +227,7 @@ class TestTasksListParser(TestCase):
         parser = TasksListParser()
         tasks = parser.detect_tasks(tasks_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(tasks, [
             TaskInfo(task_id="DETENM", task_text="peen"),
             TaskInfo(task_id="NOSODNM", task_text="???")
@@ -243,7 +243,7 @@ class TestHoursListParser(TestCase):
         errors = DetectedErrors()
         hours = HoursListParser.detect_hours(hours_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(hours, [
             TaskHours.with_hours(7)
         ])
@@ -253,7 +253,7 @@ class TestHoursListParser(TestCase):
         errors = DetectedErrors()
         hours = HoursListParser.detect_hours(hours_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(hours, [
             TaskHours.with_hours(7),
             TaskHours.with_hours(1)
@@ -264,7 +264,7 @@ class TestHoursListParser(TestCase):
         errors = DetectedErrors()
         hours = HoursListParser.detect_hours(hours_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(hours, [
             TaskHours.uncertain()
         ])
@@ -274,7 +274,7 @@ class TestHoursListParser(TestCase):
         errors = DetectedErrors()
         hours = HoursListParser.detect_hours(hours_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(hours, [
             TaskHours.with_hours(3),
             TaskHours.uncertain(5),
@@ -286,7 +286,7 @@ class TestHoursListParser(TestCase):
         errors = DetectedErrors()
         hours = HoursListParser.detect_hours(hours_list_part, errors)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(hours, [
             TaskHours.with_hours(2),
             TaskHours.not_exact(3, little_more=True),
@@ -348,7 +348,7 @@ class TestRecordsParserForLine(TestCase):
         line = "24.04.2026 - DOLOREM (lorem), LIPSUM (ipsum) (7 + 1)"
         record, errors = self.record_parser.process_line(line)
 
-        self.assertFalse(errors.has_errors())
+        self.assertTrue(errors.is_ok())
         self.assertEqual(record, DayRecord(
             date=DateInfo("24.04.2026"),
             tasks={
@@ -361,7 +361,7 @@ class TestRecordsParserForLine(TestCase):
         line = "07.09.2026 - MONON (qumun), YUNON (munon) (3)"
         record, errors = self.record_parser.process_line(line)
 
-        self.assertEqual("No hours provided for task: TaskInfo(task_id='YUNON', task_text='munon')", errors.errors_list())
+        self.assertEqual("No hours provided for task: TaskInfo(task_id='YUNON', task_text='munon')", str(errors))
         self.assertEqual(record, DayRecord(
             date=DateInfo("07.09.2026"),
             tasks={
@@ -374,7 +374,7 @@ class TestRecordsParserForLine(TestCase):
         line = "08.09.2026 - VERYNON (yun) (2 + 4)"
         record, errors = self.record_parser.process_line(line)
 
-        self.assertEqual("Extra hours (missing task): 4", errors.errors_list())
+        self.assertEqual("Extra hours (missing task): 4", str(errors))
         self.assertEqual(record, DayRecord(
             date=DateInfo("08.09.2026"),
             tasks={

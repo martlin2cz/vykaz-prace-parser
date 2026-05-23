@@ -55,7 +55,7 @@ class LineParser:
         """
         matches, format_name = util.find_match(line, self.patterns)
         if not matches:
-            errors.add("Failed to detect parts")
+            errors.add_severe("Failed to detect parts")
             return None
 
         return LineParts(
@@ -103,7 +103,7 @@ class TasksListParser:
         for token in tokens:
             matches, format_name = util.find_match(token, self.task_patterns)
             if not matches:
-                errors.add(f"Invalid task format: {token}")
+                errors.add_severe(f"Invalid task format: {token}")
                 return None
             tasks.append(
                 TaskInfo(
@@ -185,10 +185,12 @@ class RecordsParser:
             record, errors = self.process_line(line)
             line_identifier = record.date.raw_date if (record and record.date and record.date.raw_date) else line
 
-            if not errors.has_errors():
+            if errors.is_ok():
                 logging.info("%s OK", line_identifier)
+            elif errors.has_severe():
+                logging.error("%s: %s", line_identifier, errors)
             else:
-                logging.error("%s: %s", line_identifier, errors.errors_list())
+                logging.warning("%s: %s", line_identifier, errors)
 
             if record:
                 records.append(record)
@@ -228,11 +230,11 @@ class RecordsParser:
         result = {}
         for task, hour in zip_longest(tasks, hours, fillvalue=None):
             if task is None:
-                errors.add(f"Extra hours (missing task): {hour}")
+                errors.add_minor(f"Extra hours (missing task): {hour}")
                 task = TaskInfo(task_id="TASK-???", task_text="???")
 
             if hour is None:
-                errors.add(f"No hours provided for task: {task}")
+                errors.add_minor(f"No hours provided for task: {task}")
                 hour = TaskHours.synthetic()
 
             result[task] = hour
